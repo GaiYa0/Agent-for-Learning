@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+
+# Secrets & local env (injected at runtime via env_file)
+.env
+.env.*
+!.env.example
+
+# Tests & caches
+tests/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# VCS & IDE
+.git/
+.gitignore
+.cursor/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Docs / plans (not needed in image)
+*.md
+!src/**/*.md

@@ -1,0 +1,72 @@
+# Learning Assistant — full stack (API + Streamlit UI)
+#
+# Prerequisites:
+#   1. Copy .env.example to .env and set OPENAI_API_KEY (required)
+#   2. docker compose up --build
+#
+# If Docker Hub times out (auth.docker.io TLS timeout), the default base image
+# uses DaoCloud mirror. Override in .env when you have direct Hub access:
+#   DOCKER_BASE_IMAGE=python:3.11-slim
+#
+# URLs:
+#   API:      http://localhost:8000/docs
+#   Frontend: http://localhost:8501
+
+services:
+  api:
+    build:
+      context: .
+      args:
+        BASE_IMAGE: ${DOCKER_BASE_IMAGE:-docker.m.daocloud.io/library/python:3.11-slim}
+    container_name: learning-assistant-api
+    command:
+      - uvicorn
+      - learning_assistant.api.app:create_app
+      - --factory
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      CORS_ALLOWED_ORIGINS: http://localhost:8501,http://127.0.0.1:8501
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      args:
+        BASE_IMAGE: ${DOCKER_BASE_IMAGE:-docker.m.daocloud.io/library/python:3.11-slim}
+    container_name: learning-assistant-frontend
+    command:
+      - streamlit
+      - run
+      - src/learning_assistant/frontend/app.py
+      - --server.port=8501
+      - --server.address=0.0.0.0
+      - --browser.gatherUsageStats=false
+    ports:
+      - "8501:8501"
+    environment:
+      LA_API_BASE_URL: http://api:8000
+      LA_API_KEY: ${API_KEYS:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

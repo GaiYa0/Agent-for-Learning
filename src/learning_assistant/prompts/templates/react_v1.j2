@@ -1,0 +1,15 @@
+Answer the following question using the ReAct reasoning pattern.
+
+Question: {{ question }}
+
+{% if context is defined and context %}{{ context }}{% endif %}Available tools:
+{{ tools }}
+
+Respond in exactly this format:
+
+Thought: <your reasoning about what to do next>
+Action: <tool name or "finish">
+Action Input: <input for the tool, or your final answer>
+
+Previous observations:
+{{ observations }}
