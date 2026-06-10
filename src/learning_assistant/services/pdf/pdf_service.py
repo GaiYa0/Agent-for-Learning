@@ -9,7 +9,7 @@ from pypdf.errors import PdfReadError as PyPdfReadError
 
 from learning_assistant.models.document import PDFDocument
 from learning_assistant.services.base import BaseService
-from learning_assistant.services.exceptions import PDFEmptyError, PDFReadError
+from learning_assistant.services.exceptions import PDFEmptyError, PDFReadError, PDFUnreadableTextError
 
 
 class PDFService(BaseService):
@@ -35,6 +35,7 @@ class PDFService(BaseService):
         text = self._extract_all_text(reader)
         if not text.strip():
             raise PDFEmptyError(f"PDF has no extractable text: {path}")
+        self._validate_readable_text(text)
         return PDFDocument(
             filename=path.name,
             file_path=str(path.resolve()),
@@ -58,6 +59,7 @@ class PDFService(BaseService):
         text = self._extract_all_text(reader)
         if not text.strip():
             raise PDFEmptyError(f"PDF has no extractable text: {path}")
+        self._validate_readable_text(text)
         doc = PDFDocument(
             filename=path.name,
             file_path=str(path.resolve()),
@@ -131,3 +133,15 @@ class PDFService(BaseService):
             if text:
                 parts.append(text)
         return "\n\n".join(parts)
+
+    def _validate_readable_text(self, text: str, min_ratio: float = 0.5) -> None:
+        """Reject gibberish extraction (e.g. binary PDF read as text)."""
+        if not text.strip():
+            raise PDFEmptyError("PDF has no extractable text")
+        printable = sum(1 for char in text if char.isprintable() or char in "\n\r\t")
+        ratio = printable / len(text)
+        if ratio < min_ratio:
+            raise PDFUnreadableTextError(
+                "PDF text appears unreadable; it may be scanned or corrupted. "
+                "Please upload a PDF with selectable text."
+            )

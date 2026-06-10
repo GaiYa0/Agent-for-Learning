@@ -17,6 +17,10 @@ class PDFEmptyError(PDFError):
     """Raised when a PDF has no extractable content."""
 
 
+class PDFUnreadableTextError(PDFError):
+    """Raised when extracted PDF text looks like garbage or binary data."""
+
+
 class ChunkError(ServiceError):
     """Raised when text chunking fails."""
 

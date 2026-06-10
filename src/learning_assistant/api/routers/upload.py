@@ -1,11 +1,25 @@
 """Upload router."""
 
+from pathlib import Path
+
 from fastapi import APIRouter, File, Request, UploadFile
 
 from learning_assistant.api.schemas.common import APIResponse
 from learning_assistant.api.schemas.upload import UploadResponseDTO
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
+
+_ALLOWED_UPLOAD_SUFFIXES = frozenset({".pdf", ".txt"})
+
+
+def resolve_upload_suffix(filename: str | None, content: bytes) -> str:
+    """Pick a temp-file suffix so PDF uploads route to the PDF parser."""
+    if content.startswith(b"%PDF"):
+        return ".pdf"
+    suffix = Path(filename or "upload").suffix.lower()
+    if suffix in _ALLOWED_UPLOAD_SUFFIXES:
+        return suffix
+    return ".txt"
 
 
 @router.post(
@@ -19,7 +33,6 @@ async def upload_document(
     file: UploadFile = File(...),  # noqa: B008
 ) -> APIResponse[UploadResponseDTO]:
     import tempfile
-    from pathlib import Path
 
     from learning_assistant.application.dto.upload_request import UploadRequest as AppUploadRequest
 
@@ -27,7 +40,8 @@ async def upload_document(
     request_id = getattr(request.state, "request_id", "")
 
     content = await file.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp:
+    suffix = resolve_upload_suffix(file.filename, content)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(content)
         tmp_path = tmp.name
 

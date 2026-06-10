@@ -232,3 +232,21 @@ class TestPDFServiceGetMetadata:
             mock_reader.return_value = (reader, b"%PDF-1.4 minimal")
             result = await pdf_service.get_metadata(pdf_path)
         assert result == {}
+
+
+class TestPDFServiceReadableText:
+    def test_validate_readable_text_accepts_normal_text(
+        self, pdf_service: PDFService
+    ) -> None:
+        pdf_service._validate_readable_text(
+            "Deadlock is a classic operating systems topic.\n"
+        )
+
+    def test_validate_readable_text_rejects_gibberish(
+        self, pdf_service: PDFService
+    ) -> None:
+        from learning_assistant.services.exceptions import PDFUnreadableTextError
+
+        gibberish = "\x00\x01\x02" * 100 + "abc"
+        with pytest.raises(PDFUnreadableTextError, match="unreadable"):
+            pdf_service._validate_readable_text(gibberish)
